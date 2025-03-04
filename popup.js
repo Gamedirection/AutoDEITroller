@@ -4,20 +4,42 @@ document.addEventListener('DOMContentLoaded', () => {
   const goToWebsiteBtn = document.getElementById('goToWebsite');
   const statusDiv = document.getElementById('status');
 
-  // Handle "Go To Website" button click
+  // Initialize status from storage
+  chrome.storage.local.get('isActive', (data) => {
+      statusDiv.textContent = `Status: ${data.isActive ? 'Active' : 'Inactive'}`;
+  });
+
+  // Listen for storage changes
+  chrome.storage.onChanged.addListener((changes) => {
+      if (changes.isActive) {
+          statusDiv.textContent = `Status: ${changes.isActive.newValue ? 'Active' : 'Inactive'}`;
+      }
+  });
+
+  // Website navigation handler
   goToWebsiteBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'https://enddei.ed.gov' });
+      chrome.tabs.create({ url: 'https://enddei.ed.gov' });
   });
 
-  // Handle "START" button click
+  // Start button handler
   startBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ action: "start" });
-    statusDiv.textContent = "Status: Active";
+      chrome.runtime.sendMessage({ action: "start" });
+      chrome.storage.local.set({ isActive: true });
   });
 
-  // Handle "STOP" button click
+  // Stop button handler
   stopBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ action: "stop" });
-    statusDiv.textContent = "Status: Inactive";
+      chrome.runtime.sendMessage({ action: "stop" });
+      chrome.storage.local.set({ isActive: false });
   });
+
+  // Progress animation (optional)
+  let progress = 0;
+  const progressBar = document.getElementById('progress');
+  setInterval(() => {
+      if (statusDiv.textContent.includes('Active')) {
+          progress = (progress + 1) % 100;
+          progressBar.style.width = `${progress}%`;
+      }
+  }, 100);
 });

@@ -1,0 +1,387 @@
+Manifest
+```
+{
+
+ "manifest_version": 3,
+
+"name": "DE Form Autofiller",
+
+"version": "1.0",
+
+"permissions": ["activeTab", "scripting", "storage"],
+
+"action": {
+
+"default_popup": "popup.html",
+
+"default_icon": "icon.png"
+
+ },
+
+"background": {
+
+"service_worker": "background.js"
+
+ },
+
+"content_scripts": [{
+
+"matches": ["*://enddei.ed.gov/*"],
+
+"js": ["content.js"]
+
+ }],
+
+"icons": {
+
+"128": "icon.png"
+
+ }
+
+}
+```
+background.js
+
+```
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+
+if(message.action === "start" || message.action === "stop") {
+
+chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+
+chrome.tabs.sendMessage(tabs[0].id, message);
+
+ });
+
+ }
+
+});
+```
+content.js
+```
+let isActive = false;
+
+ const academicInstitutions = [
+
+"Harvard University", "Stanford Online High School",
+
+"University of Phoenix", "MIT OpenCourseWare",
+
+"Coursera Global Campus", "Khan Academy Virtual School",
+
+"Udacity Nanodegree Program", "Southern New Hampshire University Online",
+
+"Western Governors University", "Grand Canyon University Online", "Harvard University",
+
+"Massachusetts Institute of Technology (MIT)",
+
+"Stanford University",
+
+"California Institute of Technology (Caltech)",
+
+"University of California, Berkeley (UC Berkeley)",
+
+//...rest of entries
+
+"University of Buenos Aires (UBA)","Pontifical Catholic U",
+
+"University of Chile (UC)",
+
+"University of Chile"
+
+];
+
+function generateRandomInstitution() {
+
+return academicInstitutions[Math.floor(Math.random() * academicInstitutions.length)];
+
+}
+
+
+
+
+function generateEmail() {
+
+const rand = Math.random().toString(36).substring(2, 10);
+
+const domains = ["protonmail", "tutanota", "mailfence"];
+
+const extensions = ["com", "net", "org"];
+
+return ${rand}@${domains[Math.random()*domains.length|0]}.${extensions[Math.random()*extensions.length|0]};
+
+}
+
+
+
+
+function generateDescription() {
+
+const buzzphrases = [
+
+"Systemic exclusion in curriculum design",
+
+"Algorithmic bias in admissions processes",
+
+"Neurodiversity accommodation gaps",
+
+//... rest of entries
+
+"Inclusive representation in academic curriculum review boards"
+
+ ];
+
+let content = "";
+
+while(content.split(/\s+/).length < 450) {
+
+content += ${buzzphrases[Math.random()*buzzphrases.length|0]} ;
+
+if(Math.random() > 0.85) {
+
+content += at ${generateRandomInstitution()} ;
+
+ }
+
+ }
+
+return content.slice(0, 3000);
+
+}
+
+
+
+
+function executeSubmissionCycle() {
+
+if(!isActive) return;
+
+document.getElementById('email').value = generateEmail();
+
+document.getElementById('location').value = generateRandomInstitution();
+
+document.getElementById('zipcode').value = Math.floor(10000 + Math.random()*90000);
+
+document.getElementById('description').value = generateDescription();
+
+document.querySelector('form').dispatchEvent(new Event('submit'));
+
+setTimeout(() => {
+
+if(document.body.textContent.includes("Thank you")) {
+
+window.location.href = "https://enddei.ed.gov/";
+
+ }
+
+if(isActive) setTimeout(executeSubmissionCycle, 5000);
+
+ }, 3000);
+
+}
+
+chrome.runtime.onMessage.addListener((message) => {
+
+if(message.action === "start") {
+
+isActive = true;
+
+if(document.getElementById('tipsForm')) {
+
+executeSubmissionCycle();
+
+ }
+
+ } else if(message.action === "stop") {
+
+isActive = false;
+
+ }
+
+});
+```
+popup.html
+```
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<style>
+
+body {
+
+width: 200px;
+
+padding: 10px;
+
+ }
+
+button {
+
+width: 100%;
+
+padding: 10px;
+
+margin: 5px 0;
+
+cursor: pointer;
+
+ }
+
+#status {
+
+text-align: center;
+
+margin-top: 10px; /* Adds 10px margin above the status div */
+
+font-size: 0.9em;
+
+ }
+
+#progress-bar {
+
+width: 100%;
+
+height: 10px;
+
+background-color: #e0e0e0;
+
+margin-top: 10px; /* Adds 10px margin above the progress bar */
+
+border-radius: 5px;
+
+overflow: hidden;
+
+ }
+
+#progress {
+
+width: 0%;
+
+height: 100%;
+
+background-color: #4caf50;
+
+transition: width 0.5s ease;
+
+ }
+
+#countdown {
+
+text-align: center;
+
+margin-top: 10px; /* Adds 10px margin above the countdown div */
+
+font-size: 0.8em;
+
+color: #555;
+
+ }
+
+</style>
+
+</head>
+
+<body>
+
+<button id="goToWebsite">Go To Website</button>
+
+<button id="start">START</button>
+
+<button id="stop">STOP</button>
+
+<div id="status">Status: Inactive</div>
+
+<div id="progress-bar">
+
+<div id="progress"></div>
+
+</div>
+
+<div id="countdown">Timeout: 15s</div>
+
+<script src="popup.js"></script>
+
+</body>
+
+</html>
+```
+```
+document.addEventListener('DOMContentLoaded', () => {
+
+ const startBtn = document.getElementById('start');
+
+const stopBtn = document.getElementById('stop');
+
+const goToWebsiteBtn = document.getElementById('goToWebsite');
+
+const statusDiv = document.getElementById('status');
+
+
+
+
+// Handle "Go To Website" button click
+
+goToWebsiteBtn.addEventListener('click', () => {
+
+chrome.tabs.create({ url: 'https://enddei.ed.gov' });
+
+ });
+
+
+
+
+// Handle "START" button click
+
+startBtn.addEventListener('click', () => {
+
+chrome.runtime.sendMessage({ action: "start" });
+
+statusDiv.textContent = "Status: Active";
+
+ });
+
+
+
+
+// Handle "STOP" button click
+
+stopBtn.addEventListener('click', () => {
+
+chrome.runtime.sendMessage({ action: "stop" });
+
+statusDiv.textContent = "Status: Inactive";
+
+ });
+
+});
+```
+Popup.js
+```
+document.addEventListener('DOMContentLoaded', () => {
+  const startBtn = document.getElementById('start');
+  const stopBtn = document.getElementById('stop');
+  const goToWebsiteBtn = document.getElementById('goToWebsite');
+  const statusDiv = document.getElementById('status');
+
+  // Handle "Go To Website" button click
+  goToWebsiteBtn.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'https://enddei.ed.gov' });
+  });
+
+  // Handle "START" button click
+  startBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: "start" });
+    statusDiv.textContent = "Status: Active";
+  });
+
+  // Handle "STOP" button click
+  stopBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: "stop" });
+    statusDiv.textContent = "Status: Inactive";
+  });
+});
+
+```

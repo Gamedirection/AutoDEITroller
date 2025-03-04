@@ -53,7 +53,7 @@ This extension is provided as-is and is intended for educational or experimental
 ---
 
 ## Support
-If you encounter any issues or have suggestions for improvement, please open an issue on the [GitHub repository](https://github.com/your-repo-link) or contact the developer directly.
+If you encounter any issues or have suggestions for improvement, please open an issue on the [GitHub repository]([https://github.com/your-repo-link](https://github.com/Gamedirection/AutoDEITroller/)) or contact the developer directly.
 
 ---
 
